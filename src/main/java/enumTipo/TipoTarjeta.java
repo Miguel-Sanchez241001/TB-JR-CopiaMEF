@@ -13,4 +13,13 @@ public enum TipoTarjeta {
     public String getCodigo() {
         return codigo;
     }
+    public static TipoTarjeta fromCodigo(String codigo) {
+        for (TipoTarjeta tipo : TipoTarjeta.values()) {
+            if (tipo.getCodigo().equals(codigo)) {
+                return tipo;
+            }
+        }
+        // Si no se encuentra un tipo con el código, se puede lanzar una excepción o devolver null
+        throw new IllegalArgumentException("Código no válido: " + codigo);
+    }
 }
