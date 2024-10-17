@@ -6,13 +6,23 @@ import javafx.application.Application;
 import javafx.geometry.Insets;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
+import javafx.scene.control.Button;
+import javafx.scene.control.Label;
+import javafx.scene.control.TextArea;
+import javafx.scene.control.TextField;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.VBox;
+import javafx.stage.DirectoryChooser;
 import javafx.stage.FileChooser;
 import javafx.stage.Stage;
 import model.MefTrama;
 
+import java.awt.*;
 import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 
 import static Util.ViewUtils.showAlert;
@@ -20,6 +30,7 @@ import static Util.ViewUtils.showAlert;
 public class MainActivity extends Application {
 
     private File archivo = null;
+    private File rutaArchivoGenerado = null;  // Variable para almacenar la ruta del archivo generado
 
     @Override
     public void start(Stage primaryStage) throws Exception {
@@ -30,7 +41,10 @@ public class MainActivity extends Application {
         TextArea textArea = new TextArea();
         textArea.setPromptText("");
         textArea.setEditable(true); // Hacer el TextArea no editable
-         // Crear un TextField (campo de texto)
+        textArea.setWrapText(true); // Permitir que el texto se ajuste
+        textArea.setPrefHeight(200); // Altura preferida para permitir redimensionar
+
+        // Crear un TextField (campo de texto)
         TextField textField = new TextField();
         textField.setPromptText("Escribe algo aquí");
 
@@ -84,8 +98,52 @@ public class MainActivity extends Application {
                 label2.setText("Archivo :" );
             }
         });
+        // Botón para descargar el contenido del TextArea
+        Button downloadButton = new Button("Guardar en Carpeta");
+        downloadButton.setOnAction(event -> {
+            if (textArea.getText().isEmpty()) {
+                showAlert("Advertencia", "El TextArea está vacío", Alert.AlertType.WARNING);
+            } else {
+                // Usar DirectoryChooser para seleccionar una carpeta
+                DirectoryChooser directoryChooser = new DirectoryChooser();
+                directoryChooser.setTitle("Seleccionar carpeta de destino");
+                File selectedDirectory = directoryChooser.showDialog(primaryStage);
+                if (selectedDirectory != null) {
+                    String fechaActual = LocalDate.now().format(DateTimeFormatter.ofPattern("yyyyMMdd"));
+                    String nombreArchivo = "TTPHAB_" + fechaActual + "_01_MEF.TXT";
+                    rutaArchivoGenerado = new File(selectedDirectory, nombreArchivo);  // Guardar la ruta del archivo generado
+                    try (FileWriter writer = new FileWriter(rutaArchivoGenerado)) {
+                        writer.write(textArea.getText());
+                        showAlert("Éxito", "Archivo guardado correctamente en: " + rutaArchivoGenerado.getAbsolutePath(), Alert.AlertType.INFORMATION);
+                    } catch (IOException e) {
+                        showAlert("Error", "No se pudo guardar el archivo: " + e.getMessage(), Alert.AlertType.ERROR);
+                    }
+                }
+            }
+        });
+        // Botón para abrir el archivo guardado
+        Button openFileButton = new Button("Abrir Archivo");
+        openFileButton.setOnAction(event -> {
+            if (rutaArchivoGenerado != null && rutaArchivoGenerado.exists()) {
+                try {
+                    Desktop.getDesktop().open(rutaArchivoGenerado);
+                } catch (IOException e) {
+                    showAlert("Error", "No se pudo abrir el archivo: " + e.getMessage(), Alert.AlertType.ERROR);
+                }
+            } else {
+                showAlert("Advertencia", "No se ha generado ningún archivo", Alert.AlertType.WARNING);
+            }
+        });
 
 
+        // Botón para limpiar los campos
+        Button clearButton = new Button("Limpiar");
+        clearButton.setOnAction(event -> {
+            textField.clear();
+            textArea.clear();
+            label2.setText("Archivo :");
+            this.archivo = null;
+        });
         // Crear un layout (VBox)
         VBox layout = new VBox(10); // Espacio de 10 píxeles entre elementos
         layout.getChildren().addAll(textField, button, fileButton);
@@ -105,13 +163,17 @@ public class MainActivity extends Application {
         GridPane.setColumnSpan(textArea, 6);  // Ocupará 4 columnas
         GridPane.setRowSpan(textArea, 6);     // Ocupará 4 filas
         gridPane.add(textArea, 0, 6);         // Colocamos el TextArea en la primera columna y fila 4
+        // Añadir los nuevos botones
+        gridPane.add(downloadButton, 0, 12);
+        gridPane.add(openFileButton, 1, 12);  // Botón para abrir archivo
+        gridPane.add(clearButton, 2, 12);  // Botón para limpiar
 
 
         // Crear una escena
         Scene scene = new Scene(gridPane, 500, 250);
 
         // Configurar el escenario
-        primaryStage.setTitle("Ventana con JavaFX");
+        primaryStage.setTitle("SIMULADOR TRAMAS MEF - BN");
         primaryStage.setScene(scene);
         primaryStage.show();
     }
